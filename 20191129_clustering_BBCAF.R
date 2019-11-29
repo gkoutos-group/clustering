@@ -1,5 +1,11 @@
 #!/usr/bin/env Rscript
 
+setwd('/notebook/Projects/clustering/')
+
+source('clust_lca_aux.R')
+source('clust_mclust_nbclust_aux.R')
+source('clust_info_table.R')
+
 setwd('/notebook/Desktop/catch me - new biomarkers/')
 #setwd('/rds/homes/v/vxr610/gkoutosg-variant-prediction/BBCAF - new biomarkers')
 
@@ -23,14 +29,10 @@ library(xlsx)
 # R: install.packages('xlsx')
 # restart R after installing
 
-source('clust_lca_aux.R')
-source('clust_mclust_nbclust_aux.R')
-source('clust_info_table.R')
-
 
 #####################
 #load the data and print summary information
-df <- read_csv('BBC_AF_data_11Nov19.csv')
+df <- read_csv('/notebook/Desktop/catch me - new biomarkers/BBC_AF_data_11Nov19.csv')
 df <- df[!is.na(df$Filter),]
 
 BIO_vars <- c('IL_6', 'hsCRP', 'ANG2', 'BMP10', 'ESM1', 'IGFBP7', 'NTproBNP', 'hsTnT', 'GDF15', 'FABP3', 'CA125', 'FGF23')
