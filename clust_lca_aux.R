@@ -1,4 +1,5 @@
 
+library(doParallel)
 library(nortest)
 library(poLCA)
 library(reshape)
@@ -10,6 +11,22 @@ create_formula <- function(columns) {
     f <- as.formula(paste('cbind(', paste(columns, collapse=', '), ') ~ 1'))
     return(f)
 }
+
+#####################
+# for the LCA, it is good to fix the variables in case we lose a level while bootstrapping:
+fix_categorical <- function(df, columns_to_fix=NULL) {
+    if(is.null(columns_to_fix)) {
+        columns_to_fix <- names(Filter(is.factor, df))
+    }
+    for(i in c(columns_to_fix)) { 
+        if(i %in% colnames(df)) {
+            df[[i]] <- as.factor(as.character(df[[i]]))
+            #print(paste(i, paste(levels(df[[i]]), collapse=' ')))
+        }
+    }
+    return(df)
+}
+
 
 #####################
 # run lca in a range of groups and seeds (optional)
@@ -178,7 +195,7 @@ plot_tracks <- function(model) {
   zp1 <- zp1 + labs(x = "",y="", fill ="")
   zp1 <- zp1 + theme( axis.text.y=element_blank(),
                       axis.ticks.y=element_blank(),                    
-                      panel.grid.major.y=element_blank())
+                      panel.grid.major.y=element_blank()) + theme(axis.text.x = element_text(angle = 90))
   zp1 <- zp1 + guides(fill = guide_legend(reverse=TRUE))
   return(zp1)
 }
@@ -200,15 +217,15 @@ operate_LCA <- function(current_seed, groups, df, formula, FILE_FORMAT, nrep=5, 
 }
 
 
-loop_operation_LCA <- function(seeds, groups, df, formula, FILE_FORMAT, nrep=5, redo=FALSE) {
+loop_operation_LCA <- function(seeds, groups, df, formula, FILE_FORMAT, nrep=5, redo=FALSE, cores=12) {
   library(parallel)
-  cl <- parallel::makeCluster(12)
+  cl <- parallel::makeCluster(cores)
   doParallel::registerDoParallel(cl)
   
   foreach(i = seeds, 
           .combine = 'c', 
           .inorder = FALSE, 
-          .export = c("operate_LCA", "fix_categorical", "ALL_CAT", "run_LCA"), 
+          .export = c("operate_LCA", "fix_categorical", "run_LCA"), 
           .packages = c("poLCA", "doParallel")) %dopar% {
             operate_LCA(i, groups, df, formula, FILE_FORMAT, nrep=nrep, redo=redo)
           }

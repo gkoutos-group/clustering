@@ -241,7 +241,7 @@ table_n_comorb <- function(df, comorbidities, subgroup_cases=c(1), cname='comorb
   
   norm_t <- NULL
   if(nrow(df) >= 5000) {
-    print(paste0(i, ' using Anderson-Darling normality test due to amount of samples >= 5000 (', nrow(df), ')'))
+    print(paste0('comorbidities test', ' using Anderson-Darling normality test due to amount of samples >= 5000 (', nrow(df), ')'))
     shap_test_pval <- ad.test(df$comorb_per_patient)$p.value
     norm_t <- 'Anderson-Darling'
   } else {
@@ -331,15 +331,15 @@ compile_results_to_xlsx <- function(df,
   }
   
   result_cat <- table_cat_values(df, 
-                                 ALL_CAT,
+                                 categorical_variables,
                                  positive_class=positive_class,
                                  classvar=classvar)
   result_cont <- table_continuous_values(df, 
-                                         CONT_vars,
+                                         continuous_variables,
                                          shapiro_threshold=shapiro_threshold,
                                          classvar=classvar)
   result_comorb <- table_n_comorb(df, 
-                                  COMORB_LIST,
+                                  comorbidity_variables,
                                   subgroup_cases=subgroup_cases,
                                   cname=cname, 
                                   cvalue=cvalue, 

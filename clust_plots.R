@@ -21,7 +21,7 @@ plot_grouped <- function(df, columns_to_test) {
   for(i in c_to_test) {
     comorbidity <- append(comorbidity, i)
     #print(ret$probs[[i]])
-    for(j in 1:4) {
+    for(j in 1:5) {
       classid <- append(classid, j)
       probability <- append(probability, ret$probs[[i]][j, 2])
     }
@@ -40,7 +40,7 @@ plot_fraction_each <- function(df, columns_to_test) {
   for(i in c_to_test) {
     tmp_df <- data.frame(ret$probs[[i]])
     colnames(tmp_df) <- c('prob0', 'prob1')
-    tmp_df$classes <- as.factor(seq(1, 4))
+    tmp_df$classes <- as.factor(seq(1, 5))
     #print(tmp_df)
     g <- ggplot(tmp_df, aes(classes)) +
       geom_bar(aes(weight=prob1, fill=prob1)) +
