@@ -180,7 +180,7 @@ table_continuous_values <- function(df, columns_to_test, shapiro_threshold=0.05,
           secondary <- append(secondary, IQR(df[(df[[classvar]] == c),][[i]], na.rm=T, type=8)) #calculated with the median: quantile estimates are approximately median-unbiased regardless of the distribution 
         } else {
           main <- append(main, mean(df[(df[[classvar]] == c),][[i]], na.rm=T))
-          secondary <- append(secondary, sd(df[(df[[classvar]] == c),][[i]], na.rm=T, type=8))
+          secondary <- append(secondary, sd(df[(df[[classvar]] == c),][[i]], na.rm=T))
         }
       }
     }
