@@ -12,7 +12,7 @@ plot_class_distrib <- function(df) {
 
 #####################
 # plot the values grouped together (stacked bar)
-plot_grouped <- function(df, columns_to_test) {
+plot_grouped <- function(df, columns_to_test, classvar='predclass') {
   classid <- vector()
   comorbidity <- vector()
   probability <- vector()
@@ -21,7 +21,7 @@ plot_grouped <- function(df, columns_to_test) {
   for(i in c_to_test) {
     comorbidity <- append(comorbidity, i)
     #print(ret$probs[[i]])
-    for(j in 1:5) {
+    for(j in 1:length(levels(df[[classvar]]))) {
       classid <- append(classid, j)
       probability <- append(probability, ret$probs[[i]][j, 2])
     }
@@ -34,13 +34,13 @@ plot_grouped <- function(df, columns_to_test) {
 
 #####################
 # for each column plot the distributions
-plot_fraction_each <- function(df, columns_to_test) {
+plot_fraction_each <- function(df, columns_to_test, classvar='predclass') {
   #c_to_test <- colnames(df)[grepl('comorbidity.', colnames(df))]
   c_to_test <- columns_to_test
   for(i in c_to_test) {
     tmp_df <- data.frame(ret$probs[[i]])
     colnames(tmp_df) <- c('prob0', 'prob1')
-    tmp_df$classes <- as.factor(seq(1, 5))
+    tmp_df$classes <- as.factor(seq(1, length(levels(df[[classvar]]))))
     #print(tmp_df)
     g <- ggplot(tmp_df, aes(classes)) +
       geom_bar(aes(weight=prob1, fill=prob1)) +
