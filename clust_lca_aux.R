@@ -188,7 +188,7 @@ operate_LCA <- function(current_seed, groups, df, formula, FILE_FORMAT, nrep=5, 
 }
 
 
-loop_operation_LCA <- function(seeds, groups, df, formula, FILE_FORMAT, nrep=5, redo=FALSE, cores=12, rslurm=FALSE, rslurm_qos="castles", rslurm_account="gkoutosg-variant-prediction") {
+loop_operation_LCA <- function(seeds, groups, df, formula, FILE_FORMAT, nrep=5, redo=FALSE, cores=12, rslurm=FALSE, rslurm_qos="castles", rslurm_account="gkoutosg-variant-prediction", rslurm_jobname='clustering') {
     if(rslurm == TRUE) {
         library(rslurm)
         rslurm_operate <- function(i) {
@@ -202,8 +202,8 @@ loop_operation_LCA <- function(seeds, groups, df, formula, FILE_FORMAT, nrep=5, 
                             pkgs=c('poLCA'),
                             slurm_options = list(time = "8:00:00",
                                                  qos =rslurm_qos, account=rslurm_account), 
-                            jobname="LCA_clustering")
-        #cleanup_files(sjob)
+                            jobname=rslurm_jobname)
+        cleanup_files(sjob)
     } else {
         library(parallel)
         cl <- parallel::makeCluster(cores)
