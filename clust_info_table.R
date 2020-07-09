@@ -25,7 +25,15 @@ table_cat_pval <- function(df, columns_to_test, classvar='predclass') {
   for(i in c_to_test) {
     print(i)
     tbl <- table(df[[classvar]], df[[i]])
-    chi <- fisher.test(tbl, simulate.p.value=T)
+    chi <- NULL
+    tryCatch({
+        chi <- fisher.test(tbl, simulate.p.value=T)
+    }, error = function(e) {
+        print(paste('fisher.test failed for', i))
+    })
+    if(is.null(chi)) {
+        chi <- list("p.value" = 1)
+    }
     condition <- append(condition, i)
     pval <- append(pval, chi$p.value)
     print(chi)
