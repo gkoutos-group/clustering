@@ -188,13 +188,13 @@ operate_LCA <- function(current_seed, groups, df, formula, FILE_FORMAT, nrep=5, 
 }
 
 
-loop_operation_LCA <- function(seeds, groups, df, formula, FILE_FORMAT, nrep=5, redo=FALSE, cores=12, rslurm=FALSE) {
+loop_operation_LCA <- function(seeds, groups, df, formula, FILE_FORMAT, nrep=5, redo=FALSE, cores=12, rslurm=FALSE, rslurm_qos="castles", rslurm_account="gkoutosg-variant-prediction") {
     if(rslurm == TRUE) {
         library(rslurm)
         rslurm_operate <- function(i) {
             operate_LCA(i, groups, df, formula, FILE_FORMAT, nrep=nrep, redo=redo)
         }
-        sjob <- slurm_apply(rslurm_operate, params=data.frame(i=seeds), add_objects=c('groups', 'df', 'formula', 'FILE_FORMAT', 'nrep', 'redo', nodes=cores, cpus_per_node=2))
+        sjob <- slurm_apply(rslurm_operate, params=data.frame(i=seeds), add_objects=c('groups', 'df', 'formula', 'FILE_FORMAT', 'nrep', 'redo'), nodes=cores, cpus_per_node=2, slurm_options = list(time = "8:00:00", share = TRUE, qos =rslurm_qos, account=rslurm_account), jobname="LCA_clustering"))
         cleanup_files(sjob)
     }
 
