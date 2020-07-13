@@ -12,7 +12,7 @@ plot_class_distrib <- function(df) {
 
 #####################
 # plot the values grouped together (stacked bar)
-plot_grouped <- function(df, columns_to_test, classvar='predclass') {
+plot_grouped <- function(df, columns_to_test, model, classvar='predclass') {
   classid <- vector()
   comorbidity <- vector()
   probability <- vector()
@@ -23,7 +23,7 @@ plot_grouped <- function(df, columns_to_test, classvar='predclass') {
     #print(ret$probs[[i]])
     for(j in 1:length(levels(df[[classvar]]))) {
       classid <- append(classid, j)
-      probability <- append(probability, ret$probs[[i]][j, 2])
+      probability <- append(probability, model$probs[[i]][j, 2])
     }
   }
   tdf <- data.frame(classid, comorbidity, probability)

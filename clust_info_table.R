@@ -1,4 +1,5 @@
 
+
 #####################
 # check for missing columns
 check_columns_dataset <- function(df, columns_to_test) {
@@ -195,7 +196,7 @@ table_continuous_values <- function(df, columns_to_test, shapiro_threshold=0.05,
   }
   
   cat_df <- data.frame(condition, class, main, secondary)
-  cat_df$info <- paste0(cat_df$main, " (", cat_df$secondary, ")")
+  cat_df$info <- sprintf("%0.2f (%0.2f)", cat_df$main, cat_df$secondary)
   cat_df$main <- NULL
   cat_df$secondary <- NULL
   
@@ -359,6 +360,7 @@ compile_results_to_xlsx <- function(df,
                 result_cont,
                 result_comorb))
   } else {
+      library(xlsx)
     write.xlsx(result_cat,
                file = output_file,
                sheetName = "categorical variables",
