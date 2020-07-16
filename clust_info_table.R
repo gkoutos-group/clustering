@@ -186,7 +186,10 @@ table_continuous_values <- function(df, columns_to_test, shapiro_threshold=0.05,
         class <- append(class, c)
         if(shap_test_pval < shapiro_threshold) {
           main <- append(main, median(df[(df[[classvar]] == c),][[i]], na.rm=T))
-          secondary <- append(secondary, IQR(df[(df[[classvar]] == c),][[i]], na.rm=T, type=8)) #calculated with the median: quantile estimates are approximately median-unbiased regardless of the distribution 
+          
+          quart <- quantile(df[(df[[classvar]] == c),][[i]], probs=c(0.25, 0.75), type=8, na.rm=T)
+          secondary <- append(secondary, sprintf("%0.2f-%0.2f", quart[1], quart[2]))
+          #secondary <- append(secondary, IQR(df[(df[[classvar]] == c),][[i]], na.rm=T, type=8)) #calculated with the median: quantile estimates are approximately median-unbiased regardless of the distribution 
         } else {
           main <- append(main, mean(df[(df[[classvar]] == c),][[i]], na.rm=T))
           secondary <- append(secondary, sd(df[(df[[classvar]] == c),][[i]], na.rm=T))
@@ -196,7 +199,8 @@ table_continuous_values <- function(df, columns_to_test, shapiro_threshold=0.05,
   }
   
   cat_df <- data.frame(condition, class, main, secondary)
-  cat_df$info <- sprintf("%0.2f (%0.2f)", cat_df$main, cat_df$secondary)
+  cat_df$info <- sprintf("%0.2f (%s)", cat_df$main, cat_df$secondary)
+           
   cat_df$main <- NULL
   cat_df$secondary <- NULL
   
@@ -378,3 +382,17 @@ compile_results_to_xlsx <- function(df,
   }
 }
 
+table_split_str <- function(t_df) {
+    for(i in colnames(t_df)) {
+        if(grepl(" ", i)) {
+            p1 <- str_split(i, ' ')[[1]][1]
+            p2 <- str_split(i, ' ')[[1]][2]
+            all_p1 <- unlist(lapply(str_split(t_df[[i]], ' '), function(x) {x[1]}))
+            all_p2 <- unlist(lapply(str_split(t_df[[i]], ' '), function(x) {ifelse(is.na(x[2]), '-', x[2])}))
+            t_df[[p1]] <- all_p1
+            t_df[[p2]] <- str_replace_all(all_p2, '[)(]', '')
+            t_df[[i]] <- NULL
+        }
+    }
+    return(t_df)
+}
