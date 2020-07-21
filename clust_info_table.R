@@ -1,4 +1,5 @@
 
+
 #####################
 # check for missing columns
 check_columns_dataset <- function(df, columns_to_test) {
@@ -25,7 +26,15 @@ table_cat_pval <- function(df, columns_to_test, classvar='predclass') {
   for(i in c_to_test) {
     print(i)
     tbl <- table(df[[classvar]], df[[i]])
-    chi <- fisher.test(tbl, simulate.p.value=T)
+    chi <- NULL
+    tryCatch({
+        chi <- fisher.test(tbl, simulate.p.value=T)
+    }, error = function(e) {
+        print(paste('fisher.test failed for', i))
+    })
+    if(is.null(chi)) {
+        chi <- list("p.value" = 1)
+    }
     condition <- append(condition, i)
     pval <- append(pval, chi$p.value)
     print(chi)
@@ -177,17 +186,21 @@ table_continuous_values <- function(df, columns_to_test, shapiro_threshold=0.05,
         class <- append(class, c)
         if(shap_test_pval < shapiro_threshold) {
           main <- append(main, median(df[(df[[classvar]] == c),][[i]], na.rm=T))
-          secondary <- append(secondary, IQR(df[(df[[classvar]] == c),][[i]], na.rm=T, type=8)) #calculated with the median: quantile estimates are approximately median-unbiased regardless of the distribution 
+          
+          quart <- quantile(df[(df[[classvar]] == c),][[i]], probs=c(0.25, 0.75), type=8, na.rm=T)
+          secondary <- append(secondary, sprintf("%0.2f-%0.2f", quart[1], quart[2]))
+          #secondary <- append(secondary, IQR(df[(df[[classvar]] == c),][[i]], na.rm=T, type=8)) #calculated with the median: quantile estimates are approximately median-unbiased regardless of the distribution 
         } else {
           main <- append(main, mean(df[(df[[classvar]] == c),][[i]], na.rm=T))
-          secondary <- append(secondary, sd(df[(df[[classvar]] == c),][[i]], na.rm=T, type=8))
+          secondary <- append(secondary, sd(df[(df[[classvar]] == c),][[i]], na.rm=T))
         }
       }
     }
   }
   
   cat_df <- data.frame(condition, class, main, secondary)
-  cat_df$info <- paste0(cat_df$main, " (", cat_df$secondary, ")")
+  cat_df$info <- sprintf("%0.2f (%s)", cat_df$main, cat_df$secondary)
+           
   cat_df$main <- NULL
   cat_df$secondary <- NULL
   
@@ -241,7 +254,7 @@ table_n_comorb <- function(df, comorbidities, subgroup_cases=c(1), cname='comorb
   
   norm_t <- NULL
   if(nrow(df) >= 5000) {
-    print(paste0(i, ' using Anderson-Darling normality test due to amount of samples >= 5000 (', nrow(df), ')'))
+    print(paste0('comorbidities test', ' using Anderson-Darling normality test due to amount of samples >= 5000 (', nrow(df), ')'))
     shap_test_pval <- ad.test(df$comorb_per_patient)$p.value
     norm_t <- 'Anderson-Darling'
   } else {
@@ -331,15 +344,15 @@ compile_results_to_xlsx <- function(df,
   }
   
   result_cat <- table_cat_values(df, 
-                                 ALL_CAT,
+                                 categorical_variables,
                                  positive_class=positive_class,
                                  classvar=classvar)
   result_cont <- table_continuous_values(df, 
-                                         CONT_vars,
+                                         continuous_variables,
                                          shapiro_threshold=shapiro_threshold,
                                          classvar=classvar)
   result_comorb <- table_n_comorb(df, 
-                                  COMORB_LIST,
+                                  comorbidity_variables,
                                   subgroup_cases=subgroup_cases,
                                   cname=cname, 
                                   cvalue=cvalue, 
@@ -351,6 +364,7 @@ compile_results_to_xlsx <- function(df,
                 result_cont,
                 result_comorb))
   } else {
+      library(xlsx)
     write.xlsx(result_cat,
                file = output_file,
                sheetName = "categorical variables",
@@ -368,3 +382,17 @@ compile_results_to_xlsx <- function(df,
   }
 }
 
+table_split_str <- function(t_df) {
+    for(i in colnames(t_df)) {
+        if(grepl(" ", i)) {
+            p1 <- str_split(i, ' ')[[1]][1]
+            p2 <- str_split(i, ' ')[[1]][2]
+            all_p1 <- unlist(lapply(str_split(t_df[[i]], ' '), function(x) {x[1]}))
+            all_p2 <- unlist(lapply(str_split(t_df[[i]], ' '), function(x) {ifelse(is.na(x[2]), '-', x[2])}))
+            t_df[[p1]] <- all_p1
+            t_df[[p2]] <- str_replace_all(all_p2, '[)(]', '')
+            t_df[[i]] <- NULL
+        }
+    }
+    return(t_df)
+}
