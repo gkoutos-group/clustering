@@ -4,6 +4,8 @@ library(nortest)
 library(poLCA)
 library(reshape)
 library(reshape2)
+library(hash)
+library(fossil)
 
 #####################
 # create a formula based on some columns
@@ -69,10 +71,10 @@ run_LCA <- function(df, formula, groups=2:7, seeds=1:5, graphs=FALSE, maxiter=5e
     
     # combine the vectors
     rdf <- data.frame(seed,
-                                        nclasses, 
-                                        bic,
-                                        aic,
-                                        llik)
+                    nclasses, 
+                    bic,
+                    aic,
+                    llik)
     ret <- list("rdr" = rdf, "models" = models)
     return(ret)
 }
@@ -221,17 +223,89 @@ loop_operation_LCA <- function(seeds, groups, df, formula, FILE_FORMAT, nrep=5, 
     }
 }
 
-load_results_LCA <- function(seeds, groups, FILE_FORMAT) {
+rand_index_pairwise <- function(models) {
+    modelA <- models[[1]]
+    modelB <- models[[2]]
+    
+    # prepare the data from models
+    mA <- unique(data.frame(ids=rownames(modelA$x), predclass=modelA$predclass))
+    mB <- unique(data.frame(ids=rownames(modelB$x), predclass=modelB$predclass))
+    
+    # obtain the rows in common
+    rows_to_use <- intersect(mA$ids, mB$ids)
+    mA <- mA[mA$ids %in% rows_to_use,]
+    mB <- mB[mB$ids %in% rows_to_use,]
+    
+    # just to be sure the comparison is against the same ids
+    mA <- mA[with(mA, order(ids)),]
+    mB <- mB[with(mB, order(ids)),]
+        
+    # calculate and return index
+    ri <- rand.index(mA$predclass, mB$predclass)
+    return(ri)
+}
+
+compile_results <- function(best_models, parallel_cores) {
+    compiled_results <- list()
+    for(i in keys(best_models)) {
+        case <- values(best_models, i)
+        if(parallel_cores == 1){
+            compiled_results[[i]] <- apply(combn(2:length(case), 2), 2, function(x) rand_index_pairwise(case[x]))
+        } else {
+            library(parallel)
+            #cl <- parallel::makeCluster(detectCores()-1)
+            #doParallel::registerDoParallel(cl)
+
+            combinations <- t(combn(2:length(case), 2))
+            ri_values <- mclapply(1:nrow(combinations), function(x) rand_index_pairwise(case[combinations[x, ]]), mc.cores=parallel_cores)
+            
+            ri_values[sapply(ri_values, is.null)] <- NA
+                            
+            compiled_results[[i]] <- data.frame(first=unlist(combinations[, 1]), second=unlist(combinations[, 2]), value=unlist(ri_values))
+
+            #parallel::stopCluster(cl)
+        }
+    }
+    return(compiled_results)
+}
+
+load_results_LCA <- function(seeds, groups, FILE_FORMAT, obtain_rindex=FALSE, default_length=10, optimization_parameter='bic', parallel_cores=6) {
     final <- NULL
+    rindex <- NULL
+    best_models <- hash()
+        
     for(i in seeds) {
         f <- paste0(FILE_FORMAT, max(groups), '_', i,'_.RDS')
-        c <- readRDS(f)$rdr
+        f_content <- readRDS(f)
+        c <- f_content$rdr
         c$seed <- i
         if(is.null(final)) {
             final <- c
         } else {
             final <- rbind(final, c)
         }
+        
+        if(! is.null(optimization_parameter)) {
+            best_model <- c[which.min(c[[optimization_parameter]]),]
+            this_class <- best_model$nclasses
+            this_class_char <- as.character(this_class)
+            model <- f_content$models[[this_class]]
+                        
+            if(! has.key(this_class_char, best_models)) {
+                best_models[this_class_char] <- list()
+            }
+            stored_models <- values(best_models, this_class_char)
+            stored_models[[length(stored_models) + 1]] <- model
+            best_models[this_class_char] <- stored_models
+        }
     }
-    return(final)
+    
+    if(obtain_rindex) {
+        rindex <- compile_results(best_models,
+                                  parallel_cores=parallel_cores)
+    } else {
+        rindex <- NULL
+    }
+    
+    return(list("final" = final, "rindex" = rindex))
 }
