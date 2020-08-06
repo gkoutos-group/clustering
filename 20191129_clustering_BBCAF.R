@@ -94,6 +94,10 @@ df <- fix_categorical(df)
 bio_scales <- build_scales(dataSet = df[df$Filter == 1, ], cols = BIO_vars, verbose = T)
 df <- data.frame(fastScale(dataSet = df, scales = bio_scales, verbose=T))
 
+df_pca <- prcomp(df[, BIO_vars])
+df <- cbind(df, df_pca$x)
+PCA_vars <- colnames(df_pca$x)
+
 print(summary(df))
 #####################
 
@@ -197,7 +201,7 @@ stop('The block ahead does mclust/nbclust on the Biomarkers')
 # mclust clustering (biomarkers)
 
 FILE_FORMAT <- '20191127_bootstrapping/20191127_bootstrapping_all_patients_mclust_'
-loop_operation_MCLUST_NBCLUST(1:100, 1:30, df[df$Filter==1, BIO_vars], FILE_FORMAT=FILE_FORMAT, redo=F, do_mclust=T, do_nbclust=F)
+loop_operation_MCLUST_NBCLUST(1:100, 1:30, df[df$Filter==1, PCA_vars], FILE_FORMAT=FILE_FORMAT, redo=F, do_mclust=T, do_nbclust=F)
 results_mclust <- load_results_MCLUST_NBCLUST(1:100, 1:30, FILE_FORMAT, do_mclust=T, do_nbclust=F)
 
 results_mclust$groups <- as.numeric(as.character(results_mclust$groups))
@@ -216,8 +220,8 @@ ggplot(mdf[mdf$variable == 'VVI',], aes(x=groups, group=groups, y=value)) + geom
 ##########
 # nbclust clustering (biomarkers)
 
-FILE_FORMAT <- '20191127_bootstrapping/20191127_bootstrapping_all_patients_nbclust_'
-loop_operation_MCLUST_NBCLUST(1:100, 1:30, df[df$Filter==1, BIO_vars], FILE_FORMAT=FILE_FORMAT, redo=F, do_mclust=F, do_nbclust=T)
+FILE_FORMAT <- '20191127_bootstrapping/20191127_bootstrapping_all_patients_nbclust_PCA_'
+loop_operation_MCLUST_NBCLUST(1:100, 1:30, df[df$Filter==1, PCA_vars], FILE_FORMAT=FILE_FORMAT, redo=F, do_mclust=F, do_nbclust=T)
 results_nbclust <- load_results_MCLUST_NBCLUST(1:100, 1:30, FILE_FORMAT, do_mclust=F, do_nbclust=T)
 
 ggplot(results_nbclust, aes(x=Number_clusters, group=Number_clusters)) + geom_bar()
@@ -259,14 +263,14 @@ print(table(n2_df$predclass))
 ##########
 # 
 
-dataset <- c12_df
+dataset <- n2_df
+output_file <- '20191128_bbcaf_kmeans_2_df.xlsx'
 
 comparison_df <- data.frame(fastScale(dataSet = dataset, scales = bio_scales, verbose=T, way='unscale'))
-
 r <- compile_results_to_xlsx(comparison_df, 
                         continuous_variables = CONT_vars, 
                         categorical_variables = ALL_CAT,
                         comorbidity_variables = COMORB_LIST,
                         subgroup_cases = c(1, 2, 3),
-                        output_file = '20191128_bbcaf_c12_df.xlsx')
+                        output_file = output_file)
 
