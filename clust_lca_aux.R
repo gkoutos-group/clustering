@@ -247,9 +247,11 @@ rand_index_pairwise <- function(models) {
 
 compile_results <- function(best_models, parallel_cores) {
     compiled_results <- list()
+    # go through the list of best models with N classes
     for(i in keys(best_models)) {
         case <- values(best_models, i)
         if(parallel_cores == 1){
+            # compare each pair collecting the rand-index score
             compiled_results[[i]] <- apply(combn(2:length(case), 2), 2, function(x) rand_index_pairwise(case[x]))
         } else {
             library(parallel)
@@ -289,7 +291,7 @@ load_results_LCA <- function(seeds, groups, FILE_FORMAT, obtain_rindex=FALSE, de
             best_model <- c[which.min(c[[optimization_parameter]]),]
             this_class <- best_model$nclasses
             this_class_char <- as.character(this_class)
-            model <- f_content$models[[this_class]]
+            model <- f_content$models[[this_class - min(c$nclasses) + 1]] # the list might not start with 1
                         
             if(! has.key(this_class_char, best_models)) {
                 best_models[this_class_char] <- list()
@@ -308,4 +310,17 @@ load_results_LCA <- function(seeds, groups, FILE_FORMAT, obtain_rindex=FALSE, de
     }
     
     return(list("final" = final, "rindex" = rindex))
+}
+
+plot_bootstrapping_results <- function(results) {
+    ggplot(results, aes(x=nclasses, group=nclasses, y=bic)) + geom_boxplot() -> boxplts
+    results %>% group_by(nclasses) %>% dplyr::summarize(Mean = mean(bic, na.rm=T)) -> overall
+    ggplot(results, aes(x=nclasses, group=seed, y=bic, color=seed)) + geom_line() + theme(legend.position = "none") -> bic_lines
+    ggplot(results, aes(x=nclasses, y=bic)) + geom_smooth() + theme(legend.position = "none") -> bic_smooth
+
+    results %>% group_by(seed) %>% slice(which.min(bic)) -> a
+    frequency <- data.frame(table(a$nclasses))
+    colnames(frequency) <- c('nclasses', 'frequency')
+    ggplot(frequency, aes(x=nclasses, y=frequency)) + geom_bar(stat="identity") -> frequencies
+    return(list("boxplts" = boxplts, "overall" = overall, "bic_lines" = bic_lines, "bic_smooth" = bic_smooth, "frequencies" = frequencies))
 }
