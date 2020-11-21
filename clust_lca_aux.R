@@ -140,7 +140,7 @@ plot_performance_lca_clustering <- function(rdf, metric='bic') {
 
 #####################
 # run LCA with some settings
-run_single_LCA <- function(df, formula, groups, seed, maxiter=1e4, nrep=5) {
+run_single_LCA <- function(df, formula, groups, seed, maxiter=1e4, nrep=5, graphs=TRUE) {
         set.seed(seed)
         ret <- poLCA(formula,
                      df,
@@ -151,7 +151,7 @@ run_single_LCA <- function(df, formula, groups, seed, maxiter=1e4, nrep=5) {
                      nrep=nrep,
                      verbose=TRUE,
                      calc.se=TRUE,
-                     graphs=TRUE)
+                     graphs=graphs)
         return(ret)
 }
 
@@ -237,6 +237,9 @@ rand_index_pairwise <- function(models) {
     mB <- mB[mB$ids %in% rows_to_use,]
     
     # just to be sure the comparison is against the same ids
+    if((nrow(mA) == 0) | (nrow(mB) == 0)) {
+        return(0)
+    }
     mA <- mA[with(mA, order(ids)),]
     mB <- mB[with(mB, order(ids)),]
         
@@ -245,7 +248,8 @@ rand_index_pairwise <- function(models) {
     return(ri)
 }
 
-compile_results <- function(best_models, parallel_cores) {
+# gets the rand index for the results
+compile_rindex_results <- function(best_models, parallel_cores) {
     compiled_results <- list()
     # go through the list of best models with N classes
     for(i in keys(best_models)) {
@@ -271,6 +275,7 @@ compile_results <- function(best_models, parallel_cores) {
     return(compiled_results)
 }
 
+# this function loads the results from bootstrapping
 load_results_LCA <- function(seeds, groups, FILE_FORMAT, obtain_rindex=FALSE, default_length=10, optimization_parameter='bic', parallel_cores=6) {
     final <- NULL
     rindex <- NULL
@@ -303,8 +308,8 @@ load_results_LCA <- function(seeds, groups, FILE_FORMAT, obtain_rindex=FALSE, de
     }
     
     if(obtain_rindex) {
-        rindex <- compile_results(best_models,
-                                  parallel_cores=parallel_cores)
+        rindex <- compile_rindex_results(best_models,
+                                         parallel_cores=parallel_cores)
     } else {
         rindex <- NULL
     }
@@ -312,15 +317,46 @@ load_results_LCA <- function(seeds, groups, FILE_FORMAT, obtain_rindex=FALSE, de
     return(list("final" = final, "rindex" = rindex))
 }
 
-plot_bootstrapping_results <- function(results) {
-    ggplot(results, aes(x=nclasses, group=nclasses, y=bic)) + geom_boxplot() -> boxplts
-    results %>% group_by(nclasses) %>% dplyr::summarize(Mean = mean(bic, na.rm=T)) -> overall
-    ggplot(results, aes(x=nclasses, group=seed, y=bic, color=seed)) + geom_line() + theme(legend.position = "none") -> bic_lines
-    ggplot(results, aes(x=nclasses, y=bic)) + geom_smooth() + theme(legend.position = "none") -> bic_smooth
-
-    results %>% group_by(seed) %>% slice(which.min(bic)) -> a
-    frequency <- data.frame(table(a$nclasses))
-    colnames(frequency) <- c('nclasses', 'frequency')
-    ggplot(frequency, aes(x=nclasses, y=frequency)) + geom_bar(stat="identity") -> frequencies
-    return(list("boxplts" = boxplts, "overall" = overall, "bic_lines" = bic_lines, "bic_smooth" = bic_smooth, "frequencies" = frequencies))
+warning('make sure that _clustering/clust_info_table.R_ is loaded as well')
+# for a number of clusters, execute and save everything
+run_and_save <- function(df,
+                         formula, 
+                         N_clusters, 
+                         output_format,
+                         var_numerical,
+                         var_categorical,
+                         var_comorb,
+                         seed=1, 
+                         nrep=1,
+                         verbose=TRUE) {
+    if(verbose) {
+        cat('creating model... ')
+    }
+    model <- run_single_LCA(df, formula, N_clusters, seed=seed, nrep=nrep)
+    
+    predicted_df <- df
+    predicted_df$predclass <- model$predclass
+    
+    if(verbose) {
+        cat('preparing tables... ')
+    }
+    ret <- compile_results_to_xlsx(predicted_df, 
+                        continuous_variables=var_numerical, 
+                        categorical_variables=var_categorical, 
+                        comorbidity_variables=var_comorb,
+                        output_file=NULL,
+                        subgroup_cases=c(1, 2, 3, 4, 5, 6, 7, 8),
+                        positive_class="1",
+                        shapiro_threshold=0.05,
+                        cname='comorbidities', 
+                        cvalue="1",
+                        classvar='predclass')
+    
+    if(verbose) {
+        cat('saving... ')
+    }
+    write.csv(table_split_str(ret[[1]]), paste0(output_format, "_categorical.csv"), row.names=F)
+    write.csv(table_split_str(ret[[2]]), paste0(output_format, "_numerical.csv"), row.names=F)
+    write.csv(table_split_str(ret[[3]]), paste0(output_format, "_comorb.csv"), row.names=F)
+    cat('all done !\n')
 }

@@ -52,3 +52,16 @@ plot_fraction_each <- function(df, columns_to_test, classvar='predclass') {
   }    
 }
 
+# this function compiles the different useful plots for a complete bootstrapping execution (use with compiled_results)
+plot_bootstrapping_results <- function(results) {
+    ggplot(results, aes(x=nclasses, group=nclasses, y=bic)) + geom_boxplot() -> boxplts
+    results %>% group_by(nclasses) %>% dplyr::summarize(Mean = mean(bic, na.rm=T)) -> overall
+    ggplot(results, aes(x=nclasses, group=seed, y=bic, color=seed)) + geom_line() + theme(legend.position = "none") -> bic_lines
+    ggplot(results, aes(x=nclasses, y=bic)) + geom_smooth() + theme(legend.position = "none") -> bic_smooth
+
+    results %>% group_by(seed) %>% slice(which.min(bic)) -> a
+    frequency <- data.frame(table(a$nclasses))
+    colnames(frequency) <- c('nclasses', 'frequency')
+    ggplot(frequency, aes(x=nclasses, y=frequency)) + geom_bar(stat="identity") -> frequencies
+    return(list("boxplts" = boxplts, "overall" = overall, "bic_lines" = bic_lines, "bic_smooth" = bic_smooth, "frequencies" = frequencies))
+}

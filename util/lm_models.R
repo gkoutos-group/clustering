@@ -1,9 +1,9 @@
 library(ModelMetrics)
 
 predict_aucs <- function(model, output_var, predicted_df_train, predicted_df_test) {
-    prediction_train <- predict(model, new_data=predicted_df_train)
-    prediction_test <- predict(model, new_data=predicted_df_test)
-
+    prediction_train <- predict(model, newdata=predicted_df_train)
+    prediction_test <- predict(model, newdata=predicted_df_test)
+    
     auc_train <- auc(actual=predicted_df_train[[output_var]], predicted=prediction_train)
     auc_test <- auc(actual=predicted_df_test[[output_var]], predicted=prediction_test)
     

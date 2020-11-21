@@ -1,5 +1,4 @@
 
-
 #####################
 # check for missing columns
 check_columns_dataset <- function(df, columns_to_test) {
@@ -47,23 +46,26 @@ table_cat_pval <- function(df, columns_to_test, classvar='predclass') {
 # table with the distribution of values N of cases and % for categorical variables
 table_cat_values <- function(df, columns_to_test, positive_class="1", classvar='predclass') {
   check_columns_dataset(df, c(columns_to_test, classvar))
-  
-  c_to_test <- columns_to_test
-  
+    
+  # prepare a df with these columns
   condition <- vector()
   class <- vector()
   value <- vector()
   n_patients <- vector()
   percent_patients <- vector()
-  for(i in c_to_test) {
-    # if there are more than 2 options or there is no 1 option
+  
+  # go through the columns
+  for(i in columns_to_test) {
+    # if there are more than 2 options or there is no positive case ('1') option
     if((length(levels(df[[i]])) > 2) | (length(intersect(c(positive_class), levels(df[[i]]))) == 0)) { 
       options <- levels(df[[i]]) # check all options
-    } else { #check only the positive case
+    } else { #check only the positive case ('1')
       options <- positive_class
     }
     
+    # for each cluster
     for(c in unique(df[[classvar]])) {
+      # this is a separating line ?
       if(length(intersect(positive_class, options)) == 0) {
         condition <- append(condition, i)
         class <- append(class, c)
@@ -71,13 +73,14 @@ table_cat_values <- function(df, columns_to_test, positive_class="1", classvar='
         n_patients <- append(n_patients, -1)
         percent_patients <- append(percent_patients, -1)
       }
-      
+        
       for(v in options) {
         condition <- append(condition, i)
         class <- append(class, c)
         value <- append(value, v)
         n <- nrow(df[(df[[classvar]] == c) & (df[[i]] == v), ])
         n_patients <- append(n_patients, n)
+        # calculate the percentage of patients in both the cluster and with the condition
         percent_patients <- append(percent_patients, 
                                    round(100 * nrow(df[(df[[classvar]] == c) & (df[[i]] == v), ])/nrow(df[df[[classvar]] == c, ])))
       }
@@ -109,7 +112,6 @@ table_cat_values <- function(df, columns_to_test, positive_class="1", classvar='
   ct <- data.frame(class, total_patients)
   
   cat_df <- merge(cat_df, ct, on='class')
-  
   #print(head(cat_df))
   
   cat_df$nclass <- paste0(cat_df$class, ' (', cat_df$total_patients, ')')
@@ -120,11 +122,10 @@ table_cat_values <- function(df, columns_to_test, positive_class="1", classvar='
   cat_df$nclass <- NULL
   
   #print(head(cat_df))
-  
-  cat_df <- cast(cat_df, condition ~ class, value='info')
-  
-  print(cat_df)
-  pval_df <- table_cat_pval(df, c_to_test, classvar=classvar)
+  #print(head(cat_df))
+  cat_df %>% pivot_wider(names_from = class, values_from = info) -> cat_df
+  #print(head(cat_df))
+  pval_df <- table_cat_pval(df, columns_to_test, classvar=classvar)
   
   return(merge(cat_df, pval_df, on='condition', all.x=T))
 }
