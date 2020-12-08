@@ -175,7 +175,7 @@ plot_tracks <- function(model) {
 
 #####################
 # functions for analysis
-operate_LCA <- function(current_seed, groups, df, formula, FILE_FORMAT, nrep=5, redo=FALSE) {
+operate_LCA <- function(current_seed, groups, df, formula, FILE_FORMAT, nrep=5, redo=FALSE, sampling_rate=1) {
     output_file <- paste0(FILE_FORMAT, max(groups), '_', current_seed, '_.RDS')
     if(file.exists(output_file) & !redo) {
         return(NULL)
@@ -183,22 +183,22 @@ operate_LCA <- function(current_seed, groups, df, formula, FILE_FORMAT, nrep=5, 
     
     set.seed(current_seed)
 
-    ind <- sample.int(nrow(df), size=nrow(df), replace=T)
+    ind <- sample.int(nrow(df), size=as.integer(sampling_rate*nrow(df)), replace=T)
     fT <- run_LCA(fix_categorical(df[ind, ]), formula, groups=groups, seeds=NULL, nrep=nrep)
     
     saveRDS(fT, output_file)
 }
 
 
-loop_operation_LCA <- function(seeds, groups, df, formula, FILE_FORMAT, nrep=5, redo=FALSE, cores=12, rslurm=FALSE, rslurm_qos="castles", rslurm_account="gkoutosg-variant-prediction", rslurm_jobname='clustering') {
+loop_operation_LCA <- function(seeds, groups, df, formula, FILE_FORMAT, nrep=5, redo=FALSE, cores=12, rslurm=FALSE, sampling_rate=1, rslurm_qos="castles", rslurm_account="gkoutosg-variant-prediction", rslurm_jobname='clustering') {
     if(rslurm == TRUE) {
         library(rslurm)
         rslurm_operate <- function(i) {
-            operate_LCA(i, groups, df, formula, FILE_FORMAT, nrep=nrep, redo=redo)
+            operate_LCA(i, groups, df, formula, FILE_FORMAT, nrep=nrep, redo=redo, sampling_rate=sampling_rate)
         }
         sjob <- slurm_apply(rslurm_operate,
                             params=data.frame(i=seeds), 
-                            add_objects=c('groups', 'df', 'formula', 'FILE_FORMAT', 'nrep', 'redo', 'operate_LCA', 'fix_categorical', 'run_LCA', 'create_formula', 'var_comorb'), 
+                            add_objects=c('groups', 'df', 'formula', 'FILE_FORMAT', 'nrep', 'redo', 'operate_LCA', 'fix_categorical', 'run_LCA', 'create_formula', 'var_comorb', 'sampling_rate'), 
                             nodes=cores,
                             cpus_per_node=1, 
                             pkgs=c('poLCA'),
@@ -208,7 +208,7 @@ loop_operation_LCA <- function(seeds, groups, df, formula, FILE_FORMAT, nrep=5, 
         cleanup_files(sjob)
     } else {
         library(parallel)
-        cl <- parallel::makeCluster(cores)
+        cl <- parallel::makeCluster(cores, outfile='temp_op_LCA_parallel.out')
         doParallel::registerDoParallel(cl)
         
         foreach(i = seeds, 
@@ -216,7 +216,7 @@ loop_operation_LCA <- function(seeds, groups, df, formula, FILE_FORMAT, nrep=5, 
                         .inorder = FALSE, 
                         .export = c("operate_LCA", "fix_categorical", "run_LCA"), 
                         .packages = c("poLCA", "doParallel")) %dopar% {
-                            operate_LCA(i, groups, df, formula, FILE_FORMAT, nrep=nrep, redo=redo)
+                            operate_LCA(i, groups, df, formula, FILE_FORMAT, nrep=nrep, redo=redo, sampling_rate=sampling_rate)
                         }
         
         parallel::stopCluster(cl)
