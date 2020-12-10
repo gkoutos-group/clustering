@@ -258,7 +258,11 @@ compile_rindex_results <- function(best_models, parallel_cores) {
             # compare each pair collecting the rand-index score
             compiled_results[[i]] <- apply(combn(2:length(case), 2), 2, function(x) rand_index_pairwise(case[x]))
         } else {
-            library(parallel)
+            if(.Platform$OS.type == "unix") {
+                library(parallel)
+            } else {
+                library(parallelsugar)
+            }
             #cl <- parallel::makeCluster(detectCores()-1)
             #doParallel::registerDoParallel(cl)
 
