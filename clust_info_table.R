@@ -21,6 +21,7 @@ table_cat_pval <- function(df, columns_to_test, classvar='predclass') {
   condition <- vector()
   pval <- vector()
   #c_to_test <- append(colnames(df)[grepl('comorbidity.', colnames(df))], c('clinical.female', 'other.smoker', 'other.ever_smoked', 'other.spell_death'))
+  miss <- vector()
   c_to_test <- columns_to_test
   for(i in c_to_test) {
     print(i)
@@ -36,9 +37,10 @@ table_cat_pval <- function(df, columns_to_test, classvar='predclass') {
     }
     condition <- append(condition, i)
     pval <- append(pval, chi$p.value)
+    miss <- append(miss, sum(is.na(df[[i]])))
     print(chi)
   }
-  pval_df <- data.frame(condition, pval_fishert=pval)
+  pval_df <- data.frame(condition, miss, pval_fishert=pval)
   return(pval_df)
 }
 
@@ -137,18 +139,20 @@ table_continuous_pval <- function(df, columns_to_test, classvar='predclass') {
   
   condition <- vector()
   pval <- vector()
+  miss <- vector()
   #c_to_test <- append(colnames(df)[grepl('comorbidity.', colnames(df))], c('clinical.female', 'other.smoker', 'other.ever_smoked', 'other.spell_death'))
   c_to_test <- columns_to_test
   for(i in c_to_test) {
     print(i)
     tbl <- table(df[[classvar]], df[[i]]) 
-    aov <- aov(as.formula(paste0(i, ' ~ predclass')), data = df) # one way anova
+    aov <- aov(as.formula(paste0(i, ' ~ predclass')), data = df[is.finite(df[[i]]), ]) # one way anova
     #chi <- fisher.test(tbl, simulate.p.value=T)
     condition <- append(condition, i)
     pval <- append(pval, summary(aov)[[1]]['Pr(>F)'][[1]][1])
+    miss <- append(miss, sum(is.na(df[[i]])))
     print(summary(aov))
   }
-  pval_df <- data.frame(condition, pval_anova=pval)
+  pval_df <- data.frame(condition, miss, pval_anova=pval)
   return(pval_df)
 }
 
@@ -169,12 +173,12 @@ table_continuous_values <- function(df, columns_to_test, shapiro_threshold=0.05,
   secondary <- vector()
   for(i in c_to_test) {
     norm_t <- NULL
-    if(length(df[[i]]) >= 5000) {
+    if(length(df[[i]][is.finite(df[[i]])]) >= 5000) {
       print(paste0(i, ' using Anderson-Darling normality test due to amount of samples >= 5000 (', length(df[[i]]), ')'))
-      shap_test_pval <- ad.test(df[[i]])$p.value
+      shap_test_pval <- ad.test(df[[i]][is.finite(df[[i]])])$p.value
       norm_t <- 'Anderson-Darling'
     } else {
-      shap_test_pval <- shapiro.test(df[[i]])$p.value
+      shap_test_pval <- shapiro.test(df[[i]][is.finite(df[[i]])])$p.value
       norm_t <- 'Shapiro-Wilk'
     }
     normality_condition <- append(normality_condition, i)
