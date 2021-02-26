@@ -80,11 +80,11 @@ table_cat_values <- function(df, columns_to_test, positive_class="1", classvar='
         condition <- append(condition, i)
         class <- append(class, c)
         value <- append(value, v)
-        n <- nrow(df[(df[[classvar]] == c) & (df[[i]] == v), ])
+        n <- nrow(df[(df[[classvar]] == c) & (df[[i]] == v) & (!is.na(df[[i]])), ])
         n_patients <- append(n_patients, n)
         # calculate the percentage of patients in both the cluster and with the condition
         percent_patients <- append(percent_patients, 
-                                   round(100 * nrow(df[(df[[classvar]] == c) & (df[[i]] == v), ])/nrow(df[df[[classvar]] == c, ])))
+                                   round(100 * nrow(df[(df[[classvar]] == c) & (df[[i]] == v) & (!is.na(df[[i]])), ])/nrow(df[df[[classvar]] == c, ])))
       }
     }
   }
