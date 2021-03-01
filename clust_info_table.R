@@ -1,4 +1,9 @@
 
+library(xlsx)
+library(reshape)
+library(reshape2)
+library(nortest)
+
 #####################
 # check for missing columns
 check_columns_dataset <- function(df, columns_to_test) {
@@ -145,7 +150,7 @@ table_continuous_pval <- function(df, columns_to_test, classvar='predclass') {
   for(i in c_to_test) {
     print(i)
     tbl <- table(df[[classvar]], df[[i]]) 
-    aov <- aov(as.formula(paste0(i, ' ~ predclass')), data = df[is.finite(df[[i]]), ]) # one way anova
+    aov <- aov(as.formula(paste0(i, ' ~ ', classvar)), data = df[is.finite(df[[i]]), ]) # one way anova
     #chi <- fisher.test(tbl, simulate.p.value=T)
     condition <- append(condition, i)
     pval <- append(pval, summary(aov)[[1]]['Pr(>F)'][[1]][1])
@@ -326,7 +331,8 @@ compile_results_to_xlsx <- function(df,
                                     shapiro_threshold=0.05,
                                     cname='comorbidities', 
                                     cvalue="1",
-                                    classvar='predclass') {
+                                    classvar='predclass',
+                                    return_data_even_with_file=FALSE) {
   #df: the dataset
   #continuous_variables
   #categorical_variables
@@ -364,12 +370,8 @@ compile_results_to_xlsx <- function(df,
                                   shapiro_threshold=shapiro_threshold,
                                   classvar=classvar)
   
-  if(is.null(output_file)) {
-    return(list(result_cat,
-                result_cont,
-                result_comorb))
-  } else {
-      library(xlsx)
+  if(!is.null(output_file)) {
+    library(xlsx)
     write.xlsx(result_cat,
                file = output_file,
                sheetName = "categorical variables",
@@ -384,6 +386,12 @@ compile_results_to_xlsx <- function(df,
                file = output_file,
                sheetName = "comorbidity relation",
                append = TRUE)
+  }
+
+  if(return_data_even_with_file | is.null(output_file)) {
+    return(list(result_cat,
+                result_cont,
+                result_comorb))
   }
 }
 
