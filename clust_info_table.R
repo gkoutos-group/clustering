@@ -372,20 +372,28 @@ compile_results_to_xlsx <- function(df,
   
   if(!is.null(output_file)) {
     library(xlsx)
-    write.xlsx(result_cat,
-               file = output_file,
-               sheetName = "categorical variables",
-               append = FALSE)
-    
-    write.xlsx(result_cont,
-               file = output_file,
-               sheetName = "continuous variables",
-               append = TRUE)
-    
-    write.xlsx(result_comorb,
-               file = output_file,
-               sheetName = "comorbidity relation",
-               append = TRUE)
+    tryCatch({
+        write.xlsx(result_cat,
+                   file = output_file,
+                   sheetName = "categorical variables",
+                   append = FALSE)
+        
+        write.xlsx(result_cont,
+                   file = output_file,
+                   sheetName = "continuous variables",
+                   append = TRUE)
+        
+        write.xlsx(result_comorb,
+                   file = output_file,
+                   sheetName = "comorbidity relation",
+                   append = TRUE)
+        },
+        error=function(e) {
+            ow <- options("warn")
+            cat(paste0("Failed to save xlsx file. The file '", output_file, "' is probably open somewhere.\n"), file=stderr())
+            stop(e)
+            options(ow)
+        })
   }
 
   if(return_data_even_with_file | is.null(output_file)) {
