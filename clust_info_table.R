@@ -371,7 +371,6 @@ compile_results_to_xlsx <- function(df,
                                   classvar=classvar)
   
   if(!is.null(output_file)) {
-    library(xlsx)
     tryCatch({
         write.xlsx(result_cat,
                    file = output_file,
