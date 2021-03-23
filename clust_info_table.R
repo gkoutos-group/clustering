@@ -268,6 +268,9 @@ table_n_comorb <- function(df, comorbidities, subgroup_cases=c(1), cname='comorb
       stop(paste('Condition', c, 'does not have case', cvalue))
     }
   }
+  if(is.null(comorbidities) | (length(comorbidities) == 0)) {
+    return(NULL)
+  }
   
   class <- vector()
   condition <- vector()
