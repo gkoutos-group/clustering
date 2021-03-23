@@ -2,6 +2,7 @@
 library(xlsx)
 library(reshape)
 library(reshape2)
+library(tidyverse)
 library(nortest)
 
 #####################
@@ -20,7 +21,7 @@ check_columns_dataset <- function(df, columns_to_test) {
 
 #####################
 # auxiliary table with fisher test on the categorical variables
-table_cat_pval <- function(df, columns_to_test, classvar='predclass') {
+table_cat_pval <- function(df, columns_to_test, classvar='predclass', verbose=FALSE) {
   check_columns_dataset(df, c(columns_to_test, classvar))
   
   condition <- vector()
@@ -29,7 +30,9 @@ table_cat_pval <- function(df, columns_to_test, classvar='predclass') {
   miss <- vector()
   c_to_test <- columns_to_test
   for(i in c_to_test) {
-    print(i)
+    if(verbose) {
+      print(i)
+    }
     tbl <- table(df[[classvar]], df[[i]])
     chi <- NULL
     tryCatch({
@@ -43,7 +46,9 @@ table_cat_pval <- function(df, columns_to_test, classvar='predclass') {
     condition <- append(condition, i)
     pval <- append(pval, chi$p.value)
     miss <- append(miss, sum(is.na(df[[i]])))
-    print(chi)
+    if(verbose) {
+      print(chi)
+    }
   }
   pval_df <- data.frame(condition, miss, pval_fishert=pval)
   return(pval_df)
@@ -139,7 +144,7 @@ table_cat_values <- function(df, columns_to_test, positive_class="1", classvar='
 
 #####################
 # auxiliary table with one-way anova test on continuous variables
-table_continuous_pval <- function(df, columns_to_test, classvar='predclass') {
+table_continuous_pval <- function(df, columns_to_test, classvar='predclass', verbose=FALSE) {
   check_columns_dataset(df, c(columns_to_test, classvar))
   
   condition <- vector()
@@ -148,14 +153,18 @@ table_continuous_pval <- function(df, columns_to_test, classvar='predclass') {
   #c_to_test <- append(colnames(df)[grepl('comorbidity.', colnames(df))], c('clinical.female', 'other.smoker', 'other.ever_smoked', 'other.spell_death'))
   c_to_test <- columns_to_test
   for(i in c_to_test) {
-    print(i)
+    if(verbose) {
+      print(i)
+    }
     tbl <- table(df[[classvar]], df[[i]]) 
     aov <- aov(as.formula(paste0(i, ' ~ ', classvar)), data = df[is.finite(df[[i]]), ]) # one way anova
     #chi <- fisher.test(tbl, simulate.p.value=T)
     condition <- append(condition, i)
     pval <- append(pval, summary(aov)[[1]]['Pr(>F)'][[1]][1])
     miss <- append(miss, sum(is.na(df[[i]])))
-    print(summary(aov))
+    if(verbose) {
+      print(summary(aov))
+    }
   }
   pval_df <- data.frame(condition, miss, pval_anova=pval)
   return(pval_df)
@@ -163,9 +172,12 @@ table_continuous_pval <- function(df, columns_to_test, classvar='predclass') {
 
 #####################
 # table with the distribution of values mean (sd) or median (iqr) depending on shapiro-wilk or anderson-darling (if >= 5000 samples)
-table_continuous_values <- function(df, columns_to_test, shapiro_threshold=0.05, classvar='predclass') {
+table_continuous_values <- function(df, columns_to_test, shapiro_threshold=0.05, classvar='predclass', verbose=FALSE) {
   check_columns_dataset(df, c(columns_to_test, classvar))
   c_to_test <- columns_to_test
+  if(is.null(c_to_test) | (length(c_to_test) == 0)) {
+    return()
+  }
   
   normality_condition <- vector()
   normality_pval <- vector()
@@ -179,7 +191,9 @@ table_continuous_values <- function(df, columns_to_test, shapiro_threshold=0.05,
   for(i in c_to_test) {
     norm_t <- NULL
     if(length(df[[i]][is.finite(df[[i]])]) >= 5000) {
-      print(paste0(i, ' using Anderson-Darling normality test due to amount of samples >= 5000 (', length(df[[i]]), ')'))
+      if(verbose) {
+        print(paste0(i, ' using Anderson-Darling normality test due to amount of samples >= 5000 (', length(df[[i]]), ')'))
+      }
       shap_test_pval <- ad.test(df[[i]][is.finite(df[[i]])])$p.value
       norm_t <- 'Anderson-Darling'
     } else {
@@ -189,7 +203,9 @@ table_continuous_values <- function(df, columns_to_test, shapiro_threshold=0.05,
     normality_condition <- append(normality_condition, i)
     normality_pval <- append(normality_pval, shap_test_pval)
     normality_test <- append(normality_test, norm_t)
-    print(paste(i, shap_test_pval))
+    if(verbose) {
+      print(paste(i, shap_test_pval))
+    }
     for(c in unique(df[[classvar]])) {
       for(v in "1") {
         condition <- append(condition, i)
