@@ -261,7 +261,7 @@ table_continuous_values <- function(df, columns_to_test, shapiro_threshold=0.05,
 
 #####################
 # table comorbidities
-table_n_comorb <- function(df, comorbidities, subgroup_cases=c(1), cname='comorbidities', cvalue="1", shapiro_threshold=0.05, classvar='predclass') {
+table_n_comorb <- function(df, comorbidities, subgroup_cases=c(1), cname='comorbidities', cvalue="1", shapiro_threshold=0.05, classvar='predclass', verbose=FALSE) {
   check_columns_dataset(df, c(comorbidities, classvar))
   for(c in comorbidities) {
     if(length(intersect(c(cvalue), levels(df[[c]]))) == 0) {
@@ -280,7 +280,9 @@ table_n_comorb <- function(df, comorbidities, subgroup_cases=c(1), cname='comorb
   
   norm_t <- NULL
   if(nrow(df) >= 5000) {
-    print(paste0('comorbidities test', ' using Anderson-Darling normality test due to amount of samples >= 5000 (', nrow(df), ')'))
+    if(verbose) {
+      print(paste0('comorbidities test', ' using Anderson-Darling normality test due to amount of samples >= 5000 (', nrow(df), ')'))
+    }
     shap_test_pval <- ad.test(df$comorb_per_patient)$p.value
     norm_t <- 'Anderson-Darling'
   } else {
