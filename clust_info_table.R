@@ -56,7 +56,7 @@ table_cat_pval <- function(df, columns_to_test, classvar='predclass', verbose=FA
 
 #####################
 # table with the distribution of values N of cases and % for categorical variables
-table_cat_values <- function(df, columns_to_test, positive_class="1", classvar='predclass') {
+table_cat_values <- function(df, columns_to_test, positive_class="1", classvar='predclass', verbose=FALSE) {
   check_columns_dataset(df, c(columns_to_test, classvar))
     
   # prepare a df with these columns
@@ -137,7 +137,7 @@ table_cat_values <- function(df, columns_to_test, positive_class="1", classvar='
   #print(head(cat_df))
   cat_df %>% pivot_wider(names_from = class, values_from = info) -> cat_df
   #print(head(cat_df))
-  pval_df <- table_cat_pval(df, columns_to_test, classvar=classvar)
+  pval_df <- table_cat_pval(df, columns_to_test, classvar=classvar, verbose=verbose)
   
   return(merge(cat_df, pval_df, on='condition', all.x=T))
 }
@@ -353,7 +353,8 @@ compile_results_to_xlsx <- function(df,
                                     cname='comorbidities', 
                                     cvalue="1",
                                     classvar='predclass',
-                                    return_data_even_with_file=FALSE) {
+                                    return_data_even_with_file=FALSE,
+                                    verbose=F) {
   #df: the dataset
   #continuous_variables
   #categorical_variables
@@ -378,7 +379,8 @@ compile_results_to_xlsx <- function(df,
   result_cat <- table_cat_values(df, 
                                  categorical_variables,
                                  positive_class=positive_class,
-                                 classvar=classvar)
+                                 classvar=classvar,
+                                 verbose=verbose)
   result_cont <- table_continuous_values(df, 
                                          continuous_variables,
                                          shapiro_threshold=shapiro_threshold,
