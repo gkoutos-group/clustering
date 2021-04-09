@@ -57,7 +57,7 @@ plot_bootstrapping_results <- function(results) {
     ggplot(results, aes(x=nclasses, group=nclasses, y=bic)) + geom_boxplot() -> boxplts
     results %>% group_by(nclasses) %>% dplyr::summarize(Mean = mean(bic, na.rm=T)) -> overall
     ggplot(results, aes(x=nclasses, group=seed, y=bic, color=seed)) + geom_line() + theme(legend.position = "none") -> bic_lines
-    ggplot(results, aes(x=nclasses, y=bic)) + geom_smooth() + theme(legend.position = "none") -> bic_smooth
+    ggplot(results, aes(x=nclasses, y=bic)) + geom_smooth(method='gam') + scale_x_continuous("nclasses", labels=as.character(results$nclasses), breaks=results$nclasses) + theme(legend.position = "none") + theme_minimal() -> bic_smooth
 
     results %>% group_by(seed) %>% slice(which.min(bic)) -> a
     frequency <- data.frame(table(a$nclasses))
