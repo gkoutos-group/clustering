@@ -157,7 +157,20 @@ table_continuous_pval <- function(df, columns_to_test, classvar='predclass', ver
       print(i)
     }
     tbl <- table(df[[classvar]], df[[i]]) 
-    aov <- aov(as.formula(paste0(i, ' ~ ', classvar)), data = df[is.finite(df[[i]]), ]) # one way anova
+    
+    if(length(df[[i]][is.finite(df[[i]])]) >= 5000) {
+      pval <- ad.test(df[[i]][is.finite(df[[i]])])$p.value
+    } else {
+      pval <- shapiro.test(df[[i]][is.finite(df[[i]])])$p.value
+    }
+    
+    if(pval < 0.05) {
+      test <- kruskal.test
+    } else {
+      test <- aov
+    }
+    
+    aov <- test(as.formula(paste0(i, ' ~ ', classvar)), data = df[is.finite(df[[i]]), ]) # one way test
     #chi <- fisher.test(tbl, simulate.p.value=T)
     condition <- append(condition, i)
     pval <- append(pval, summary(aov)[[1]]['Pr(>F)'][[1]][1])
