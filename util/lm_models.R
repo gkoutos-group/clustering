@@ -1,4 +1,5 @@
 library(ModelMetrics)
+library(pROC)
 
 predict_aucs <- function(model, output_var, predicted_df_train, predicted_df_test) {
     prediction_train <- predict(model, newdata=predicted_df_train)
@@ -80,4 +81,36 @@ lm_models <- function(predicted_df, variables_for_model, case="cluster", col_clu
 
     output_results <- cbind(case=output_cases, train=output_auc_train, test=output_auc_test, class=output_class)
     return(list(scores=output_results, or_tables=or_tables))
+}
+
+# run_for function creates a model and plot auc and ci
+# model will be created towards @param outcome
+# model will be created on the `train` df in the `dfs` list
+# model will be weighted by distribution of values
+# @param outcome: outcome variable to be tested against; must be 1 or 0
+# @param variables: variables used to created model
+# @param predict_on: dataset in `dfs` list used to predict the result
+# @param dfs: list of dataframes, `train` and the one pointed by `predict_on` are required
+# @return: the predictions made on the new data
+lm_balanced <- function(outcome, variables, predict_on, dfs) {
+    f <- as.formula(paste0(paste0(outcome, ' ~'), 
+                      paste(variables, collapse=' + ', sep=' + ')))
+    wt <- 1 + (as.numeric(as.character(dfs[['train']][[outcome]])) * (as.numeric(nrow(dfs[['train']]) / table(dfs[['train']][[outcome]])['1'] - 1)))
+    print(f)
+    model <- glm(f, 
+                 weights = wt,
+                 data=dfs[['train']], 
+                 family=binomial("logit"))
+
+    tdf <- dfs[[predict_on]]
+    pred <- predict(model, newdata=tdf, type='response')
+
+    rocobj_c <- plot.roc(tdf[[outcome]], pred, direction='<', levels=c(0, 1))
+    ci.sp.obj_c <- ci.sp(rocobj_c, sensitivities=seq(0, 1, .01), boot.n=100)
+    #plot(rocobj_c)
+    #plot(ci.sp.obj_nnc, type="shape", col=alpha("green", 0.6), add=T)
+
+    print(rocobj_c$auc)
+    print(ci.auc(rocobj_c, method='delong'))
+    return(list(model=model, pred=pred))
 }
