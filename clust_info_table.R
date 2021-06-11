@@ -150,7 +150,6 @@ table_continuous_pval <- function(df, columns_to_test, classvar='predclass', ver
   condition <- vector()
   pval <- vector()
   miss <- vector()
-  #c_to_test <- append(colnames(df)[grepl('comorbidity.', colnames(df))], c('clinical.female', 'other.smoker', 'other.ever_smoked', 'other.spell_death'))
   c_to_test <- columns_to_test
   for(i in c_to_test) {
     if(verbose) {
@@ -159,25 +158,27 @@ table_continuous_pval <- function(df, columns_to_test, classvar='predclass', ver
     tbl <- table(df[[classvar]], df[[i]]) 
     
     if(length(df[[i]][is.finite(df[[i]])]) >= 5000) {
-      pval <- ad.test(df[[i]][is.finite(df[[i]])])$p.value
+      pval1 <- ad.test(df[[i]][is.finite(df[[i]])])$p.value
     } else {
-      pval <- shapiro.test(df[[i]][is.finite(df[[i]])])$p.value
+      pval1 <- shapiro.test(df[[i]][is.finite(df[[i]])])$p.value
     }
     
-    if(pval < 0.05) {
-      test <- kruskal.test
+    if(pval1 < 0.05) {
+      test <- kruskal.test(as.formula(paste0(i, ' ~ ', classvar)), data = df[is.finite(df[[i]]), ])
+      pval <- append(pval, test$p.value[1])
+      if(verbose) {
+        print(test)
+      }
     } else {
-      test <- aov
+      test <- aov(as.formula(paste0(i, ' ~ ', classvar)), data = df[is.finite(df[[i]]), ])
+      pval <- append(pval, summary(test)[[1]]['Pr(>F)'][[1]][1])
+      if(verbose) {
+        print(summary(test))
+      }
     }
     
-    aov <- test(as.formula(paste0(i, ' ~ ', classvar)), data = df[is.finite(df[[i]]), ]) # one way test
-    #chi <- fisher.test(tbl, simulate.p.value=T)
     condition <- append(condition, i)
-    pval <- append(pval, summary(aov)[[1]]['Pr(>F)'][[1]][1])
     miss <- append(miss, sum(is.na(df[[i]])))
-    if(verbose) {
-      print(summary(aov))
-    }
   }
   pval_df <- data.frame(condition, miss, pval_anova=pval)
   return(pval_df)
