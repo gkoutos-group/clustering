@@ -453,3 +453,7 @@ table_split_str <- function(t_df) {
     }
     return(t_df)
 }
+
+
+
+cat('USE TABLEONE FUNCTIONS INSTEAD AS CLUSTERING FUNCTIONS WILL NOT BE MAINTAINED\n')
