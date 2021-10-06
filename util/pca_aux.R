@@ -1,4 +1,6 @@
-library(ggbiplot)
+if(!("ggbiplot" %in% (.packages()))){
+    library(ggbiplot)
+}
 
 pca_for_variables <- function(dataset, variables, target) {
     noNA <- rowSums(is.na(dataset[, variables])) == 0 #filter rows with missing values
