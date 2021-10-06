@@ -332,11 +332,13 @@ run_and_save <- function(df,
                          var_comorb,
                          seed=1, 
                          nrep=1,
-                         verbose=TRUE) {
+                         verbose=TRUE,
+                         transform_cat=F,
+                         graphs=FALSE) {
     if(verbose) {
         cat('creating model... ')
     }
-    model <- run_single_LCA(df, formula, N_clusters, seed=seed, nrep=nrep)
+    model <- run_single_LCA(df, formula, N_clusters, seed=seed, nrep=nrep, graphs=graphs)
     
     predicted_df <- df
     predicted_df$predclass <- model$predclass
@@ -344,11 +346,18 @@ run_and_save <- function(df,
     if(verbose) {
         cat('preparing tables... ')
     }
+    
+    if(transform_cat) {
+        for(i in var_categorical) {
+            predicted_df[[i]] <- as.factor(predicted_df[[i]])
+        }
+    }
+    
     ret <- compile_results_to_xlsx(predicted_df, 
                         continuous_variables=var_numerical, 
                         categorical_variables=var_categorical, 
                         comorbidity_variables=var_comorb,
-                        output_file=NULL,
+                        output_file=paste0(output_format, ".xlsx"),
                         subgroup_cases=c(1, 2, 3, 4, 5, 6, 7, 8),
                         positive_class="1",
                         shapiro_threshold=0.05,
@@ -363,4 +372,6 @@ run_and_save <- function(df,
     write.csv(table_split_str(ret[[2]]), paste0(output_format, "_numerical.csv"), row.names=F)
     write.csv(table_split_str(ret[[3]]), paste0(output_format, "_comorb.csv"), row.names=F)
     cat('all done !\n')
+    
+    return(predicted_df)
 }
