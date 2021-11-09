@@ -326,7 +326,7 @@ warning('make sure that _clustering/clust_info_table.R_ is loaded as well')
 run_and_save <- function(df,
                          formula, 
                          N_clusters, 
-                         output_format,
+                         output_format, # to save the files
                          var_numerical,
                          var_categorical,
                          var_comorb,
@@ -364,14 +364,6 @@ run_and_save <- function(df,
                         cname='comorbidities', 
                         cvalue="1",
                         classvar='predclass')
-    
-    if(verbose) {
-        cat('saving... ')
-    }
-    write.csv(table_split_str(ret[[1]]), paste0(output_format, "_categorical.csv"), row.names=F)
-    write.csv(table_split_str(ret[[2]]), paste0(output_format, "_numerical.csv"), row.names=F)
-    write.csv(table_split_str(ret[[3]]), paste0(output_format, "_comorb.csv"), row.names=F)
-    cat('all done !\n')
     
     return(predicted_df)
 }
