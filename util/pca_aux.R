@@ -11,12 +11,12 @@ pca_for_variables <- function(dataset, variables, target) {
               center=T, 
               scale.=T)
     
-    p <- ggbiplot(pca, 
-         obs.scale=1, 
-         var.scale=1, 
-         groups=c_target, 
-         ellipse=T, 
-         circle=T) + 
+    p <- ggbiplot::ggbiplot(pca, 
+                             obs.scale=1, 
+                             var.scale=1, 
+                             groups=c_target, 
+                             ellipse=T, 
+                             circle=T) + 
     scale_color_discrete(name = '') + 
     theme(legend.direction = 'horizontal', legend.position='top')
     
