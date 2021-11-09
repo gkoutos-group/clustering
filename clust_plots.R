@@ -58,6 +58,7 @@ plot_bootstrapping_results <- function(results) {
     ggplot(results, aes(x=nclasses, group=nclasses, y=bic)) + geom_boxplot() -> boxplts
     results %>% group_by(nclasses) %>% dplyr::summarize(Mean = mean(bic, na.rm=T)) -> overall
     ggplot(results, aes(x=nclasses, group=seed, y=bic, color=seed)) + geom_line() + theme(legend.position = "none") -> bic_lines
+    # for the smooth plots, some other ones could be: loess, lm (with formula = y~poly(x, 3))
     ggplot(results, aes(x=nclasses, y=bic)) + geom_smooth(method='gam', formula = y ~ s(x, bs='cs', k=5)) + scale_x_continuous("nclasses", labels=as.character(results$nclasses), breaks=results$nclasses) + theme(legend.position = "none") + theme_minimal() -> bic_smooth
 
     results %>% group_by(seed) %>% slice(which.min(bic)) -> a
