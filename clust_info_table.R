@@ -1,4 +1,6 @@
 
+stop('this file is outdated, use tableone/describe_table.R instead')
+
 library(xlsx)
 library(reshape)
 library(reshape2)
