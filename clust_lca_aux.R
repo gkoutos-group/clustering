@@ -321,12 +321,12 @@ load_results_LCA <- function(seeds, groups, FILE_FORMAT, obtain_rindex=FALSE, de
     return(list("final" = final, "rindex" = rindex))
 }
 
-warning('make sure that _clustering/clust_info_table.R_ is loaded as well')
+warning('make sure that _clustering/clust_info_table.R_ is loaded as well - OR any other source for function compile_results_to_xlsx')
 # for a number of clusters, execute and save everything
 run_and_save <- function(df,
                          formula, 
                          N_clusters, 
-                         output_format, # to save the files
+                         output_format, # to save the files - without extension
                          var_numerical,
                          var_categorical,
                          var_comorb,
@@ -334,7 +334,9 @@ run_and_save <- function(df,
                          nrep=1,
                          verbose=TRUE,
                          transform_cat=F,
-                         graphs=FALSE) {
+                         graphs=FALSE,
+                         subgroup_cases=c(1, 2, 3, 4, 5, 6, 7, 8),
+                         save_all=F) {
     if(verbose) {
         cat('creating model... ')
     }
@@ -358,12 +360,27 @@ run_and_save <- function(df,
                         categorical_variables=var_categorical, 
                         comorbidity_variables=var_comorb,
                         output_file=paste0(output_format, ".xlsx"),
-                        subgroup_cases=c(1, 2, 3, 4, 5, 6, 7, 8),
+                        subgroup_cases=subgroup_cases,
                         positive_class="1",
                         shapiro_threshold=0.05,
                         cname='comorbidities', 
                         cvalue="1",
                         classvar='predclass')
+    
+    if(save_all) {
+        predicted_df$.all_samples <- 1
+        ret_all <- compile_results_to_xlsx(predicted_df, 
+                                       continuous_variables=var_numerical, 
+                                       categorical_variables=var_categorical, 
+                                       comorbidity_variables=var_comorb,
+                                       output_file=paste0(output_format, "_all.xlsx"),
+                                       subgroup_cases=subgroup_cases,
+                                       positive_class="1",
+                                       shapiro_threshold=0.05,
+                                       cname='comorbidities', 
+                                       cvalue="1",
+                                       classvar='.all_samples')
+    }
     
     return(predicted_df)
 }
