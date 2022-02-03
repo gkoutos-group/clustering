@@ -1,12 +1,13 @@
 library(ModelMetrics)
 library(pROC)
+library(checkmate)
 
 predict_aucs <- function(model, output_var, predicted_df_train, predicted_df_test) {
-    prediction_train <- predict(model, newdata=predicted_df_train)
-    prediction_test <- predict(model, newdata=predicted_df_test)
+    prediction_train <- predict(model, newdata=predicted_df_train, type='response')
+    prediction_test <- predict(model, newdata=predicted_df_test, type='response')
     
-    auc_train <- auc(actual=predicted_df_train[[output_var]], predicted=prediction_train)
-    auc_test <- auc(actual=predicted_df_test[[output_var]], predicted=prediction_test)
+    auc_train <- auc(predicted_df_train[[output_var]], prediction_train)
+    auc_test <- auc(predicted_df_test[[output_var]], prediction_test)
     
     return(list(train=auc_train, test=auc_test))
 }
@@ -15,6 +16,16 @@ prepare_OR_table <- function(x) {
     return (cbind(OR=exp(coef(x)), 
                  CI_low=exp(summary(x)$coefficients[, 1] - 1.96*summary(x)$coefficients[, 2]), 
                  CI_high=exp(summary(x)$coefficients[, 1] + 1.96*summary(x)$coefficients[, 2])))
+}
+
+hr_coefs <- function(df, predictors, tvar, svar) {
+    tformula <- as.formula(paste0('Surv(time=', tvar, ', event=', svar, ') ~ ', paste(predictors, collapse=' + ')))
+    res.cox <- coxph(tformula, data=df)
+    
+    scx <- as.data.frame(summary(res.cox)$coefficients)
+    scx$HRlow <- exp(scx[, 1] - 1.96*scx[, 3])
+    scx$HRhigh <- exp(scx[, 1] + 1.96*scx[, 3])
+    return(list(model=res.cox, coeffs=scx))
 }
 
 complete_OR_table <- function(x, class_is, case) {
@@ -27,11 +38,20 @@ complete_OR_table <- function(x, class_is, case) {
     return(or_t)
 }
 
-lm_models <- function(predicted_df, variables_for_model, case="cluster", col_clusters="predclass", seed=123, train_test_split=0.6) {
+lm_models <- function(predicted_df, 
+                      variables_for_model, 
+                      case="cluster", 
+                      col_clusters="predclass",
+                      seed=123, 
+                      train_test_split=0.6,
+                      direction=NULL) {
     # predicted_df: the dataset with
     # col_clusters: the column indicating the different clusters
     # seed: randomized split of the dataset
     # train_test_split value between 0.01 and 0.99 for splitting the data
+    # direction: forward, backward or both - feature selection
+    
+    assert(checkChoice(direction, c( 'backward', 'forward', 'both'), null.ok=T))
     
     f1 <- paste0(variables_for_model, collapse=' + ')
     
@@ -74,6 +94,12 @@ lm_models <- function(predicted_df, variables_for_model, case="cluster", col_clu
         class_is <- paste0('class_', i)
 
         m1 <- glm(formula(paste0(class_is, ' ~ ', f1)), family=binomial(link='logit'), data=predicted_df_train)
+        if(!is.null(direction)) {
+            sdir = step(m1,
+                        direction=direction,
+                        trace=0)
+            m1 <- sdir
+        }
         aucs <- predict_aucs(m1, class_is, predicted_df_train, predicted_df_test)
         or_t1 <- complete_OR_table(m1, class_is, case)
         add_info(case, aucs$train, aucs$test, class_is, or_t1)
