@@ -6,8 +6,8 @@ predict_aucs <- function(model, output_var, predicted_df_train, predicted_df_tes
     prediction_train <- predict(model, newdata=predicted_df_train, type='response')
     prediction_test <- predict(model, newdata=predicted_df_test, type='response')
     
-    auc_train <- auc(predicted_df_train[[output_var]], prediction_train)
-    auc_test <- auc(predicted_df_test[[output_var]], prediction_test)
+    auc_train <- auc(predicted_df_train[[output_var]], prediction_train, levels=c(0, 1), direction='<')
+    auc_test <- auc(predicted_df_test[[output_var]], prediction_test, levels=c(0, 1), direction='<')
     
     return(list(train=auc_train, test=auc_test))
 }
