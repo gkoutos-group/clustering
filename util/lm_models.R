@@ -15,7 +15,8 @@ predict_aucs <- function(model, output_var, predicted_df_train, predicted_df_tes
 prepare_OR_table <- function(x) {
     return (cbind(OR=exp(coef(x)), 
                  CI_low=exp(summary(x)$coefficients[, 1] - 1.96*summary(x)$coefficients[, 2]), 
-                 CI_high=exp(summary(x)$coefficients[, 1] + 1.96*summary(x)$coefficients[, 2])))
+                 CI_high=exp(summary(x)$coefficients[, 1] + 1.96*summary(x)$coefficients[, 2]),
+                 pval=summary(x)$coefficients[, 4]))
 }
 
 hr_coefs <- function(df, predictors, tvar, svar) {
