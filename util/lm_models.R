@@ -1,6 +1,7 @@
 library(ModelMetrics)
 library(pROC)
 library(checkmate)
+library(MASS)
 
 predict_aucs <- function(model, output_var, predicted_df_train, predicted_df_test) {
     prediction_train <- predict(model, newdata=predicted_df_train, type='response')
@@ -10,6 +11,16 @@ predict_aucs <- function(model, output_var, predicted_df_train, predicted_df_tes
     auc_test <- auc(predicted_df_test[[output_var]], prediction_test, levels=c(0, 1), direction='<')
     
     return(list(train=auc_train, test=auc_test))
+}
+
+predict_rmse <- function(model, output_var, predicted_df_train, predicted_df_test) {
+    prediction_train <- predict(model, newdata=predicted_df_train, type='response')
+    prediction_test <- predict(model, newdata=predicted_df_test, type='response')
+    
+    rmse_train <- rmse(predicted_df_train[[output_var]], prediction_train)
+    rmse_test <- rmse(predicted_df_test[[output_var]], prediction_test)
+    
+    return(list(train=rmse_train, test=rmse_test))
 }
 
 prepare_OR_table <- function(x) {
@@ -39,6 +50,37 @@ complete_OR_table <- function(x, class_is, case) {
     return(or_t)
 }
 
+
+lm_model_continuous <- function(predicted_df, 
+                                variables_for_model, 
+                                case="cluster", 
+                                output="predclass",
+                                seed=123, 
+                                train_test_split=0.6,
+                                direction=NULL) {
+    assert(checkChoice(direction, c('backward', 'forward', 'both'), null.ok=T))
+    
+    f1 <- paste0(variables_for_model, collapse=' + ')
+    
+    set.seed(seed)
+    train_ind <- sample(seq_len(nrow(predicted_df)), size=floor(train_test_split * nrow(predicted_df)))
+    
+    predicted_df_train <- predicted_df[train_ind,]
+    predicted_df_test <- predicted_df[-train_ind,]
+
+    m1 <- glm(formula(paste0(output, ' ~ ', f1)), family='poisson', data=predicted_df_train)
+    if(!is.null(direction)) {
+        print('Backward selection process...')
+        sdir = stepAIC(m1,
+                       direction=direction,
+                       trace=T)
+        m1 <- sdir
+    }
+    
+    rmses <- predict_rmse(m1, output, predicted_df_train, predicted_df_test)
+    return(list(scores=as.data.frame(list(case=case, train=rmses$train, test=rmses$test, output=output)), or_tables=summary(m1)$coefficients))
+}
+
 lm_models <- function(predicted_df, 
                       variables_for_model, 
                       case="cluster", 
@@ -52,7 +94,7 @@ lm_models <- function(predicted_df,
     # train_test_split value between 0.01 and 0.99 for splitting the data
     # direction: forward, backward or both - feature selection
     
-    assert(checkChoice(direction, c( 'backward', 'forward', 'both'), null.ok=T))
+    assert(checkChoice(direction, c('backward', 'forward', 'both'), null.ok=T))
     
     f1 <- paste0(variables_for_model, collapse=' + ')
     
@@ -66,10 +108,10 @@ lm_models <- function(predicted_df,
     predicted_df_train <- predicted_df[train_ind,]
     predicted_df_test <- predicted_df[-train_ind,]
 
-    for(i in levels(predicted_df$predclass)) {
+    for(i in levels(predicted_df[[col_clusters]])) {
         class_is <- paste0('class_', i)
-        predicted_df_train[[class_is]] <- as.numeric(predicted_df_train$predclass == i)
-        predicted_df_test[[class_is]] <- as.numeric(predicted_df_test$predclass == i)
+        predicted_df_train[[class_is]] <- as.numeric(predicted_df_train[[col_clusters]] == i)
+        predicted_df_test[[class_is]] <- as.numeric(predicted_df_test[[col_clusters]] == i)
     }
     
     or_tables <- NULL
@@ -96,9 +138,10 @@ lm_models <- function(predicted_df,
 
         m1 <- glm(formula(paste0(class_is, ' ~ ', f1)), family=binomial(link='logit'), data=predicted_df_train)
         if(!is.null(direction)) {
-            sdir = step(m1,
+            print('Backward selection process...')
+            sdir = stepAIC(m1,
                         direction=direction,
-                        trace=0)
+                        trace=T)
             m1 <- sdir
         }
         aucs <- predict_aucs(m1, class_is, predicted_df_train, predicted_df_test)
