@@ -2,6 +2,7 @@ library(ModelMetrics)
 library(pROC)
 library(checkmate)
 library(MASS)
+library(regclass)
 
 predict_aucs <- function(model, output_var, predicted_df_train, predicted_df_test) {
     prediction_train <- predict(model, newdata=predicted_df_train, type='response')
@@ -139,7 +140,7 @@ lm_models <- function(predicted_df,
 
         m1 <- glm(formula(paste0(class_is, ' ~ ', f1)), family=binomial(link='logit'), data=predicted_df_train)
         if(!is.null(direction)) {
-            print('Backward selection process...')
+            #print('Backward selection process...')
             sdir = stepAIC(m1,
                         direction=direction,
                         trace=trace)
@@ -148,6 +149,8 @@ lm_models <- function(predicted_df,
         aucs <- predict_aucs(m1, class_is, predicted_df_train, predicted_df_test)
         or_t1 <- complete_OR_table(m1, class_is, case)
         add_info(case, aucs$train, aucs$test, class_is, or_t1)
+        
+        print(VIF(m1))
     }
 
     output_results <- cbind(case=output_cases, train=output_auc_train, test=output_auc_test, class=output_class)
