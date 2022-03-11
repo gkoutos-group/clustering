@@ -87,7 +87,8 @@ lm_models <- function(predicted_df,
                       col_clusters="predclass",
                       seed=123, 
                       train_test_split=0.6,
-                      direction=NULL) {
+                      direction=NULL,
+                      trace=F) {
     # predicted_df: the dataset with
     # col_clusters: the column indicating the different clusters
     # seed: randomized split of the dataset
@@ -141,7 +142,7 @@ lm_models <- function(predicted_df,
             print('Backward selection process...')
             sdir = stepAIC(m1,
                         direction=direction,
-                        trace=T)
+                        trace=trace)
             m1 <- sdir
         }
         aucs <- predict_aucs(m1, class_is, predicted_df_train, predicted_df_test)
