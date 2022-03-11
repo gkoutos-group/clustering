@@ -16,9 +16,10 @@ pca_for_variables <- function(dataset, variables, target) {
                              var.scale=1, 
                              groups=c_target, 
                              ellipse=T, 
-                             circle=T) + 
+                             #circle=T,
+                             var.axes = F) + 
     scale_color_discrete(name = '') + 
     theme(legend.direction = 'horizontal', legend.position='top')
     
-    return(list(pca=pca, plot=p))
+    return(list(pca=pca, plot=p, rot=pca$rotation, sdev=pca$sdev))
 }
