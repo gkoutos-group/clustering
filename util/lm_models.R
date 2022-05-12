@@ -32,6 +32,7 @@ prepare_OR_table <- function(x) {
 }
 
 hr_coefs <- function(df, predictors, tvar, svar) {
+    cat(paste(svar, tvar, '\n'))
     tformula <- as.formula(paste0('Surv(time=', tvar, ', event=', svar, ') ~ ', paste(predictors, collapse=' + ')))
     res.cox <- coxph(tformula, data=df)
     
