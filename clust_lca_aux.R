@@ -336,7 +336,8 @@ run_and_save <- function(df,
                          transform_cat=F,
                          graphs=FALSE,
                          subgroup_cases=c(1, 2, 3, 4, 5, 6, 7, 8),
-                         save_all=F) {
+                         save_all=F,
+                         comorb_positives=c(1)) {
     if(verbose) {
         cat('creating model... ')
     }
@@ -364,7 +365,7 @@ run_and_save <- function(df,
                         positive_class="1",
                         shapiro_threshold=0.05,
                         cname='comorbidities', 
-                        cvalue="1",
+                        cvalue=comorb_positives,
                         classvar='predclass')
     
     if(save_all) {
