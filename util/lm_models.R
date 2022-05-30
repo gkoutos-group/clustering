@@ -3,6 +3,7 @@ library(pROC)
 library(checkmate)
 library(MASS)
 library(regclass)
+library(survcomp)
 
 predict_aucs <- function(model, output_var, predicted_df_train, predicted_df_test) {
     prediction_train <- predict(model, newdata=predicted_df_train, type='response')
