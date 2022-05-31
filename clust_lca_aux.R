@@ -379,7 +379,7 @@ run_and_save <- function(df,
                                        positive_class="1",
                                        shapiro_threshold=0.05,
                                        cname='comorbidities', 
-                                       cvalue="1",
+                                       cvalue=comorb_positives,
                                        classvar='.all_samples')
     }
     
