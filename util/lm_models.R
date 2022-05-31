@@ -152,7 +152,9 @@ lm_models <- function(predicted_df,
         or_t1 <- complete_OR_table(m1, class_is, case)
         add_info(case, aucs$train, aucs$test, class_is, or_t1)
         
-        print(VIF(m1))
+        if(length(variables_for_model) > 1) {
+            print(VIF(m1))
+        }
     }
 
     output_results <- cbind(case=output_cases, train=output_auc_train, test=output_auc_test, class=output_class)
