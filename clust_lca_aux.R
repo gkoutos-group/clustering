@@ -337,11 +337,17 @@ run_and_save <- function(df,
                          graphs=FALSE,
                          subgroup_cases=c(1, 2, 3, 4, 5, 6, 7, 8),
                          save_all=F,
-                         comorb_positives=c(1)) {
+                         comorb_positives=c(1),
+                         save_model=NULL) {
     if(verbose) {
         cat('creating model... ')
     }
     model <- run_single_LCA(df, formula, N_clusters, seed=seed, nrep=nrep, graphs=graphs)
+
+    if (!is.null(save_model)) {
+      obj = list(probs=model$probs, P=model$P)
+      saveRDS(obj, file=save_model)
+    }
     
     predicted_df <- df
     predicted_df$predclass <- model$predclass
